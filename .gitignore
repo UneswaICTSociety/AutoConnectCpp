@@ -16,8 +16,8 @@ CPackSourceConfig.cmake
 *.sln
 
 # Slint generated files
-*.h
-*.cpp
+.h
+.cpp
 *.d
 slint_generated_*
 
