@@ -17,7 +17,7 @@ Our mission is to provide a seamless WiFi connection experience for UNESWA stude
 1. **Fork** the repository on GitHub
 2. **Clone** your fork locally:
    ```bash
-   git clone https://github.com/your-username/AutoConnectCpp.git
+   git clone https://github.com/UneswaICTSociety/AutoConnectCpp.git
    cd AutoConnectCpp
    ```
 3. **Set up** the development environment (see Development Setup below)
