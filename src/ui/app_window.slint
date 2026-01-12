@@ -1,0 +1,350 @@
+import {
+    Button,
+    LineEdit,
+    TextEdit,
+    VerticalBox,
+    HorizontalBox,
+    GroupBox,
+    StandardListView,
+    ScrollView,
+} from "std-widgets.slint";
+
+//We are just gonna use slint to make the window and UI elements. 
+//  check hte slint docs for help... they aren't that smple but welp
+
+export struct AppStatus {
+    wifi_connected: bool,
+    proxy_configured: bool,
+    overall_status: string,
+}
+
+export component AppWindow inherits Window {
+    title: "UNESWA WiFi AutoConect v1.3.7b"; //not an improvement on python version. Just an alternate version
+    
+    min-width: 520px;
+    min-height: 600px;
+    preferred-width: 600px;
+    preferred-height: 700px;
+    background: #1a1a1a; //Dark mode by defalt
+
+    in-out property <string> student_id <=> id_input.text;
+    in-out property <string> birthday <=> birthday_input.text;
+    in-out property <string> log_text;
+    in property <AppStatus> status;
+    in property <bool> is_working: false;
+    
+    // Language support
+    in-out property <bool> is_siswati: false;
+    in-out property <string> app_title: "UNESWA WiFi AutoConnect";
+    in-out property <string> app_subtitle: "ICT Society - University of Eswatini";
+    in-out property <string> student_credentials_text: "Student Credentials";
+    in-out property <string> student_id_text: "Student ID:";
+    in-out property <string> student_id_placeholder_text: "e.g., 20211234";
+    in-out property <string> password_mode_text: "Password Mode:";
+    in-out property <string> birthday_mode_text: "Birthday (Default)";
+    in-out property <string> custom_password_mode_text: "Custom Password";
+    in-out property <string> birthday_text: "Birthday:";
+    in-out property <string> password_text: "Password:";
+    in-out property <string> birthday_placeholder_text: "ddmmyyyy (e.g., 12052001)";
+    in-out property <string> password_placeholder_text: "Your custom password";
+    in-out property <string> birthday_format_text: "Format: ddmmyyyy (e.g., 12052001 for 12 May 2001)";
+    in-out property <string> password_format_text: "Use this if you changed your default password";
+    in-out property <string> complete_setup_text: "Complete Setup (Ctrl+Enter)";
+    in-out property <string> complete_setup_working_text: "Working...";
+    in-out property <string> individual_actions_text: "Individual Actions";
+    in-out property <string> wifi_only_text: "WiFi Only";
+    in-out property <string> proxy_only_text: "Proxy Only";
+    in-out property <string> register_device_text: "Register Device";
+    in-out property <string> test_connection_text: "Test Connection";
+    in-out property <string> reset_uneswa_text: "Reset UNESWA";
+    in-out property <string> activity_log_text: "Activity Log";
+    in-out property <string> language_text: "Language";
+    in-out property <string> english_text: "English";
+    in-out property <string> siswati_text: "siSwati";
+    in-out property <string> info_text: "ℹ"; // TODO: figure out to make the info pop on hover
+
+    
+    // Password mode: false = birthday, true = custom password
+    in-out property <bool> use_custom_password: false;
+    callback complete_setup(); // these will be caled from cpp. should be onclick_complete_setup() or somehting???
+    callback wifi_only();
+    callback proxy_only();
+    callback register_device();
+    callback test_connection();
+    callback reset_all();
+    callback language_changed(bool);
+    callback info_clicked();
+    callback quit_app();
+    ScrollView {
+        VerticalBox {
+            padding: 16px;
+            spacing: 14px;
+
+        //Header area with language selector. we gotta swap to eng and sz
+        HorizontalBox {
+                alignment: space-between;
+                HorizontalBox {
+                    spacing: 12px;
+                    Image {
+                        source: @image-url("../assets/logo ict.svg");
+                        width: 48px;
+                        height: 48px;
+                    }
+
+                    VerticalBox {
+                        Text {
+                            text: app_title;
+                            font-size: 24px;
+                            font-weight: 700;
+                            horizontal-alignment: left;
+                            color: white;
+                        }
+
+                        Text {
+                            text: app_subtitle;
+                            font-size: 11px;
+                            color: #888888;
+                            horizontal-alignment: left;
+                        }
+                    }
+                }
+            
+            // Language selector
+            VerticalBox {
+                    alignment: end;
+                    spacing: 5px;
+                    Text {
+                        text: language_text;
+                        font-size: 12px;
+                        color: #888888;
+                        horizontal-alignment: right;
+                    }
+
+                    HorizontalBox {
+                        spacing: 6px;
+                        alignment: end;
+                        Button {
+                            text: english_text;
+                            min-width: 65px;
+                            height: 28px;
+                            primary: !is_siswati;
+                            enabled: is_siswati;
+                            clicked => {
+                                root.is_siswati = false;
+                                root.language_changed(false);
+                            }
+                        }
+
+                        Button {
+                            text: siswati_text;
+                            min-width: 65px;
+                            height: 28px;
+                            primary: is_siswati;
+                            enabled: !is_siswati;
+                            clicked => {
+                                root.is_siswati = true;
+                                root.language_changed(true);
+                            }
+                        }
+                    }
+                }
+            }
+
+        //Status Bar showing if we are actualy conected
+        Rectangle {
+                background: #2b2b2b;
+                border-radius: 4px;
+                height: 40px;
+                HorizontalBox {
+                    padding: 10px;
+                    alignment: space-between;
+                    Text {
+                        text: status.wifi_connected ? "WiFi: Conected" : "WiFi: Disconected";
+                        color: status.wifi_connected ? #00ff00 : #ff5555;
+                    }
+
+                    Text {
+                        text: status.proxy_configured ? "Network: Ready" : "Network: Pending";
+                        color: status.proxy_configured ? #00ff00 : #ff5555;
+                    }
+
+                    Text {
+                        text: status.overall_status;
+                        font-weight: 700;
+                        color: white;
+                    }
+                }
+            }
+
+        //Credentials input for the students
+        GroupBox {
+                title: student_credentials_text;
+                vertical-stretch: 0;
+                VerticalBox {
+                    spacing: 10px;
+                    Text {
+                        text: student_id_text;
+                        color: white;
+                    }
+
+                    id_input := LineEdit {
+                        placeholder-text: student_id_placeholder_text;
+                        enabled: !is_working;
+                    }
+
+                    HorizontalBox {
+                        alignment: space-between;
+                        Text {
+                            text: password_mode_text;
+                            color: white;
+                        }
+
+                        Button {
+                            text: info_text;
+                            min-width: 28px;
+                            height: 28px;
+                            clicked => {
+                                root.info_clicked();
+                            }
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Button {
+                            text: birthday_mode_text;
+                            primary: !use_custom_password;
+                            enabled: use_custom_password && !is_working;
+                            clicked => {
+                                root.use_custom_password = false;
+                            }
+                            horizontal-stretch: 1;
+                            min-width: 120px;
+                            height: 32px;
+                        }
+
+                        Button {
+                            text: custom_password_mode_text;
+                            primary: use_custom_password;
+                            enabled: !use_custom_password && !is_working;
+                            clicked => {
+                                root.use_custom_password = true;
+                            }
+                            horizontal-stretch: 1;
+                            min-width: 120px;
+                            height: 32px;
+                        }
+                    }
+
+                    Text {
+                        text: use_custom_password ? password_text : birthday_text;
+                        color: white;
+                    }
+
+                    birthday_input := LineEdit {
+                        placeholder-text: use_custom_password ? password_placeholder_text : birthday_placeholder_text;
+                        input-type: password;
+                        enabled: !is_working;
+                    }
+
+                    Text {
+                        text: use_custom_password ? password_format_text : birthday_format_text;
+                        font-size: 11px;
+                        color: #888888;
+                    }
+                }
+            }
+
+        //Main button to do everything at once
+        Button {
+                text: is_working ? complete_setup_working_text : complete_setup_text;
+                primary: true;
+                height: 48px;
+                enabled: !is_working;
+                clicked => {
+                    root.complete_setup();
+                }
+                horizontal-stretch: 1;
+                min-width: 200px;
+            }
+
+            GroupBox {
+                title: individual_actions_text;
+                vertical-stretch: 0;
+                VerticalBox {
+                    spacing: 10px;
+                    HorizontalBox {
+                        spacing: 8px;
+                        Button {
+                            text: wifi_only_text;
+                            clicked => {
+                                root.wifi_only();
+                            }
+                            enabled: !is_working;
+                            horizontal-stretch: 1;
+                            min-width: 80px;
+                            height: 32px;
+                        }
+                    //Proxy is only for Windows right now
+                    Button {
+                            text: proxy_only_text;
+                            clicked => {
+                                root.proxy_only();
+                            }
+                            enabled: !is_working;
+                            horizontal-stretch: 1;
+                            min-width: 80px;
+                            height: 32px;
+                        }
+
+                        Button {
+                            text: register_device_text;
+                            clicked => {
+                                root.register_device();
+                            }
+                            enabled: !is_working;
+                            horizontal-stretch: 1;
+                            min-width: 100px;
+                            height: 32px;
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Button {
+                            text: test_connection_text;
+                            clicked => {
+                                root.test_connection();
+                            }
+                            enabled: !is_working;
+                            horizontal-stretch: 1;
+                            min-width: 110px;
+                            height: 32px;
+                        }
+
+                        Button {
+                            text: reset_uneswa_text;
+                            clicked => {
+                                root.reset_all();
+                            }
+                            enabled: !is_working;
+                            horizontal-stretch: 1;
+                            min-width: 100px;
+                            height: 32px;
+                        }
+                    }
+                }
+            }
+
+            GroupBox {
+                title: activity_log_text;
+                vertical-stretch: 1;
+                TextEdit {
+                    text: log_text;
+                    read-only: true;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+}
